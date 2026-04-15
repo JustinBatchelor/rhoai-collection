@@ -10,8 +10,8 @@ argocd_namespace: "tenant-gitops"
 argocd_project: "ai-workspaces"
 
 # Git reference for the Helm chart source
-chart_repo_url: "https://github.com/YOUR_ORG/YOUR_REPO.git"
-chart_repo_path: "mvp/helm/ai-workspace"
+chart_repo_url: "https://github.com/JustinBatchelor/ai-workspace"
+chart_repo_path: "./"
 chart_target_revision: "main"
 
 # Model catalog maps model key -> display name (for logging only;
