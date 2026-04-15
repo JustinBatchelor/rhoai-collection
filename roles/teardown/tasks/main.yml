@@ -1,0 +1,54 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - username | length > 0
+    fail_msg: "The variable 'username' is required for teardown."
+
+- name: Set workspace namespace
+  ansible.builtin.set_fact:
+    workspace_namespace: "{{ username }}-ai-ws"
+
+- name: Display teardown summary
+  ansible.builtin.debug:
+    msg: >-
+      Tearing down AI workspace for user '{{ username }}'
+      (namespace: {{ workspace_namespace }},
+       ArgoCD app: ai-ws-{{ username }}).
+
+- name: Delete ArgoCD Application CR (cascading delete)
+  kubernetes.core.k8s:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: "ai-ws-{{ username }}"
+    namespace: "{{ argocd_namespace }}"
+    state: absent
+    wait: true
+    wait_timeout: "{{ teardown_timeout }}"
+
+- name: Wait for namespace resources to be cleaned up
+  kubernetes.core.k8s_info:
+    kind: Namespace
+    name: "{{ workspace_namespace }}"
+  register: ns_check
+  until: >-
+    ns_check.resources | length == 0
+    or ns_check.resources[0].status.phase | default('') == 'Terminating'
+  retries: 30
+  delay: 10
+  ignore_errors: true
+
+- name: Delete workspace namespace
+  kubernetes.core.k8s:
+    kind: Namespace
+    name: "{{ workspace_namespace }}"
+    state: absent
+    wait: true
+    wait_timeout: 120
+
+- name: Confirm teardown complete
+  ansible.builtin.debug:
+    msg: >-
+      AI workspace for user '{{ username }}' has been
+      successfully torn down. Namespace '{{ workspace_namespace }}'
+      and all associated resources have been removed.

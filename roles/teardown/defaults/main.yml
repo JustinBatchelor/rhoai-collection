@@ -1,0 +1,10 @@
+---
+# ---- Survey variables (expected from AAP Job Template) ----
+username: ""
+
+# ---- Derived / overridable defaults ----
+workspace_namespace: "{{ username }}-ai-ws"
+argocd_namespace: "tenant-gitops"
+
+# Timeout for ArgoCD Application deletion (seconds)
+teardown_timeout: 300

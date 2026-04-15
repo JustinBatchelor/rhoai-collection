@@ -1,0 +1,71 @@
+---
+- name: Validate required survey variables
+  ansible.builtin.assert:
+    that:
+      - username | length > 0
+      - git_repo | length > 0
+      - ai_model | length > 0
+      - ai_model in model_catalog
+    fail_msg: >-
+      Missing or invalid survey input.
+      username={{ username }}, git_repo={{ git_repo }}, ai_model={{ ai_model }}.
+      Supported models: {{ model_catalog.keys() | list }}
+
+- name: Set workspace namespace
+  ansible.builtin.set_fact:
+    workspace_namespace: "{{ username }}-ai-ws"
+
+- name: Display provisioning summary
+  ansible.builtin.debug:
+    msg: >-
+      Provisioning AI workspace for user '{{ username }}'
+      in namespace '{{ workspace_namespace }}'
+      with model '{{ model_catalog[ai_model] }}' ({{ ai_model }})
+      and git repo '{{ git_repo }}'.
+
+- name: Create ArgoCD Application CR
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('template', 'argo-application.yaml.j2') | from_yaml }}"
+
+- name: Wait for ArgoCD Application to sync and become healthy
+  kubernetes.core.k8s_info:
+    api_version: argoproj.io/v1alpha1
+    kind: Application
+    name: "ai-ws-{{ username }}"
+    namespace: "{{ argocd_namespace }}"
+  register: app_status
+  until:
+    - app_status.resources | length > 0
+    - app_status.resources[0].status.sync.status | default('') == 'Synced'
+    - app_status.resources[0].status.health.status | default('') in ['Healthy', 'Progressing']
+  retries: "{{ (sync_timeout | int / 10) | int }}"
+  delay: 10
+
+- name: Retrieve Notebook route URL
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    namespace: "{{ workspace_namespace }}"
+    label_selectors:
+      - "app=codeserver-nb-{{ username }}"
+  register: nb_route
+  until: nb_route.resources | length > 0
+  retries: 30
+  delay: 10
+
+- name: Display workspace access information
+  ansible.builtin.debug:
+    msg: |
+      ============================================================
+      AI Workspace provisioned successfully!
+      ============================================================
+      User:       {{ username }}
+      Namespace:  {{ workspace_namespace }}
+      Model:      {{ model_catalog[ai_model] }}
+      VS Code:    https://{{ nb_route.resources[0].spec.host }}
+      ============================================================
+
+      NOTE: The AI model may take 5-10 minutes to download on
+      first start. The Continue.dev extension will connect
+      automatically once the model is ready.

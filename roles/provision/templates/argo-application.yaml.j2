@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: "ai-ws-{{ username }}"
+  namespace: "{{ argocd_namespace }}"
+  labels:
+    app.kubernetes.io/part-of: ai-workspace
+    ai-workspace/username: "{{ username }}"
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: "{{ argocd_project }}"
+  source:
+    repoURL: "{{ chart_repo_url }}"
+    path: "{{ chart_repo_path }}"
+    targetRevision: "{{ chart_target_revision }}"
+    helm:
+      values: |
+        username: "{{ username }}"
+        gitRepo: "{{ git_repo }}"
+        aiModel:
+          name: "{{ ai_model }}"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: "{{ workspace_namespace }}"
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    retry:
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+      limit: 5
+    syncOptions:
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true
+    - RespectIgnoreDifferences=true

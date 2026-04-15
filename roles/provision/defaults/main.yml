@@ -1,0 +1,25 @@
+---
+# ---- Survey variables (expected from AAP Job Template) ----
+username: ""
+git_repo: ""
+ai_model: "qwen25-coder-14b"
+
+# ---- Derived / overridable defaults ----
+workspace_namespace: "{{ username }}-ai-ws"
+argocd_namespace: "tenant-gitops"
+argocd_project: "ai-workspaces"
+
+# Git reference for the Helm chart source
+chart_repo_url: "https://github.com/YOUR_ORG/YOUR_REPO.git"
+chart_repo_path: "mvp/helm/ai-workspace"
+chart_target_revision: "main"
+
+# Model catalog maps model key -> display name (for logging only;
+# the Helm values.yaml carries the full catalog)
+model_catalog:
+  qwen25-coder-14b: "Qwen 2.5 Coder 14B (AWQ)"
+  qwen25-coder-7b: "Qwen 2.5 Coder 7B"
+  qwen3-4b: "Qwen 3 4B"
+
+# Timeout for ArgoCD sync wait (seconds)
+sync_timeout: 600

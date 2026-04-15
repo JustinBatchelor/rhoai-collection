@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: teardown
+  author: Red Hat OpenShift AI Team
+  description: >-
+    Tear down a previously provisioned AI coding workspace by
+    deleting the ArgoCD Application CR and workspace namespace.
+  license: Apache-2.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: GenericLinux
+      versions:
+        - all
+  galaxy_tags:
+    - openshift
+    - rhoai
+    - argocd
+    - workspace
+
+dependencies: []
