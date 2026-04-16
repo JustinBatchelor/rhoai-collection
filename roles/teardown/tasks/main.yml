@@ -5,7 +5,6 @@
       - username | length > 0
     fail_msg: "The variable 'username' is required for teardown."
 
-
 - name: Set workspace namespace
   ansible.builtin.set_fact:
     workspace_namespace: "{{ username }}-ai-ws"
@@ -20,7 +19,7 @@
 - name: Delete ArgoCD Application CR (cascading delete)
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ _k8s_api_key | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     api_version: argoproj.io/v1alpha1
     kind: Application
@@ -33,7 +32,7 @@
 - name: Wait for namespace resources to be cleaned up
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ _k8s_api_key | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     kind: Namespace
     name: "{{ workspace_namespace }}"
@@ -48,7 +47,7 @@
 - name: Delete workspace namespace
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ _k8s_api_key | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     kind: Namespace
     name: "{{ workspace_namespace }}"

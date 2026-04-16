@@ -1,8 +1,7 @@
 ---
 # ---- Kubernetes authentication (injected via AAP custom credential) ----
 k8s_host: ""
-k8s_username: ""
-k8s_password: ""
+k8s_api_key: ""
 k8s_validate_certs: true
 
 # ---- Survey variables (expected from AAP Job Template) ----
