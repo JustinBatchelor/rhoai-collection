@@ -5,16 +5,6 @@
       - username | length > 0
     fail_msg: "The variable 'username' is required for teardown."
 
-- name: Authenticate to OpenShift via OAuth
-  kubernetes.core.k8s_auth:
-    host: "{{ k8s_host }}"
-    username: "{{ k8s_username }}"
-    password: "{{ k8s_password }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-  register: k8s_auth
-  when: k8s_username | length > 0
-  no_log: true
-
 - name: Set authentication facts
   ansible.builtin.set_fact:
     _k8s_api_key: "{{ k8s_auth.k8s_auth.api_key }}"
