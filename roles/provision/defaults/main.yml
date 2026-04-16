@@ -16,6 +16,10 @@ workspace_namespace: "{{ username }}-ai-ws"
 argocd_namespace: "openshift-gitops"
 argocd_project: "ai-workspaces"
 
+# ---- RHOAI gateway (used to construct workbench URLs) ----
+rhoai_applications_namespace: "redhat-ods-applications"
+rhoai_gateway_route_name: "data-science-gateway"
+
 # Git reference for the Helm chart source
 chart_repo_url: "https://github.com/JustinBatchelor/ai-workspace"
 chart_repo_path: "./"

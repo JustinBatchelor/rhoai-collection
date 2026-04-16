@@ -52,21 +52,34 @@
   retries: "{{ (sync_timeout | int / 30) | int }}"
   delay: 30
 
-# ---- Workbench route retrieval ----
-- name: Retrieve Notebook route URL
+# ---- Workbench readiness check ----
+- name: Wait for Notebook CR to become ready
+  kubernetes.core.k8s_info:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: kubeflow.org/v1
+    kind: Notebook
+    name: "codeserver-nb-{{ username }}"
+    namespace: "{{ workspace_namespace }}"
+  register: nb_status
+  until:
+    - nb_status.resources | length > 0
+    - nb_status.resources[0].status.readyReplicas | default(0) | int >= 1
+  retries: 30
+  delay: 10
+  when: editor_type == "workbench"
+
+- name: Retrieve RHOAI data-science gateway route
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     api_version: route.openshift.io/v1
     kind: Route
-    namespace: "{{ workspace_namespace }}"
-    label_selectors:
-      - "app=codeserver-nb-{{ username }}"
-  register: nb_route
-  until: nb_route.resources | length > 0
-  retries: 30
-  delay: 10
+    name: "{{ rhoai_gateway_route_name }}"
+    namespace: "{{ rhoai_applications_namespace }}"
+  register: gateway_route
   when: editor_type == "workbench"
 
 # ---- DevWorkspace URL retrieval ----
@@ -91,7 +104,9 @@
   ansible.builtin.set_fact:
     ide_url: >-
       {{
-        (nb_route.resources[0].spec.host | default(''))
+        'https://' ~ gateway_route.resources[0].spec.host
+        ~ '/notebook/' ~ workspace_namespace
+        ~ '/codeserver-nb-' ~ username
         if editor_type == 'workbench'
         else (dw_status.resources[0].status.mainUrl | default(''))
       }}
@@ -106,7 +121,7 @@
       Namespace:  {{ workspace_namespace }}
       Model:      {{ model_catalog[ai_model] }}
       Editor:     {{ editor_type }}
-      IDE URL:    {{ 'https://' ~ ide_url if editor_type == 'workbench' else ide_url }}
+      IDE URL:    {{ ide_url }}
       ============================================================
 
       NOTE: The AI model may take 5-10 minutes to download on
