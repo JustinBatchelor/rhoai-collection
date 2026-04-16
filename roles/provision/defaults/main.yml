@@ -17,12 +17,9 @@ argocd_namespace: "openshift-gitops"
 argocd_project: "ai-workspaces"
 
 # ---- RHOAI gateway (used to construct workbench URLs) ----
-rhoai_applications_namespace: "redhat-ods-applications"
+# Hostname prefix for the RHOAI gateway; combined with the cluster ingress
+# domain (from ingresses.config.openshift.io/cluster) to build the full URL.
 rhoai_gateway_route_name: "data-science-gateway"
-# Direct gateway base URL override — set this if the gateway Route cannot be
-# looked up automatically (e.g. Istio-based routing). Include the scheme,
-# e.g. "https://data-science-gateway.apps.mycluster.example.com"
-rhoai_gateway_url: ""
 
 # Git reference for the Helm chart source
 chart_repo_url: "https://github.com/JustinBatchelor/ai-workspace"

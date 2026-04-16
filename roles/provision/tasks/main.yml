@@ -82,16 +82,15 @@
   register: nb_route
   when: editor_type == "workbench"
 
-- name: Retrieve RHOAI gateway route (fallback)
+- name: Get cluster ingress domain
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
-    api_version: route.openshift.io/v1
-    kind: Route
-    name: "{{ rhoai_gateway_route_name }}"
-    namespace: "{{ rhoai_applications_namespace }}"
-  register: gateway_route
+    api_version: config.openshift.io/v1
+    kind: Ingress
+    name: cluster
+  register: ingress_config
   when:
     - editor_type == "workbench"
     - nb_route.resources | length == 0
@@ -121,36 +120,16 @@
     - editor_type == "workbench"
     - nb_route.resources | length > 0
 
-- name: Set IDE URL fact (workbench - gateway route)
+- name: Set IDE URL fact (workbench - derived from cluster ingress)
   ansible.builtin.set_fact:
     ide_url: >-
-      https://{{ gateway_route.resources[0].spec.host
+      https://{{ rhoai_gateway_route_name }}.{{
+      ingress_config.resources[0].spec.domain
       }}/notebook/{{ workspace_namespace }}/codeserver-nb-{{ username }}
   when:
     - editor_type == "workbench"
     - nb_route.resources | length == 0
-    - gateway_route.resources | default([]) | length > 0
-
-- name: Set IDE URL fact (workbench - manual fallback)
-  ansible.builtin.set_fact:
-    ide_url: "{{ rhoai_gateway_url }}/notebook/{{ workspace_namespace }}/codeserver-nb-{{ username }}"
-  when:
-    - editor_type == "workbench"
-    - nb_route.resources | length == 0
-    - gateway_route.resources | default([]) | length == 0
-    - rhoai_gateway_url | default('') | length > 0
-
-- name: Fail if no workbench URL could be determined
-  ansible.builtin.fail:
-    msg: >-
-      Could not determine the workbench URL. No notebook Route found in
-      '{{ workspace_namespace }}' and no gateway Route '{{ rhoai_gateway_route_name }}'
-      found in '{{ rhoai_applications_namespace }}'.
-      Set 'rhoai_gateway_url' (e.g. https://data-science-gateway.apps.<cluster>)
-      or verify 'rhoai_gateway_route_name' and 'rhoai_applications_namespace'.
-  when:
-    - editor_type == "workbench"
-    - ide_url is not defined
+    - ingress_config.resources | default([]) | length > 0
 
 - name: Set IDE URL fact (devspace)
   ansible.builtin.set_fact:
