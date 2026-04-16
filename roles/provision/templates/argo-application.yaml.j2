@@ -20,10 +20,13 @@ spec:
         gitRepo: "{{ git_repo }}"
         aiModel:
           name: "{{ ai_model }}"
+        editor:
+          type: "{{ editor_type }}"
   destination:
     server: https://kubernetes.default.svc
     namespace: "{{ workspace_namespace }}"
   ignoreDifferences:
+{% if editor_type == "workbench" %}
   - group: kubeflow.org
     kind: Notebook
     managedFieldsManagers:
@@ -34,6 +37,15 @@ spec:
     - /metadata/annotations/notebooks.kubeflow.org~1last_activity_check_timestamp
     - /metadata/finalizers
     - /status
+{% elif editor_type == "devspace" %}
+  - group: workspace.devfile.io
+    kind: DevWorkspace
+    managedFieldsManagers:
+    - devworkspace-controller-manager
+    jsonPointers:
+    - /metadata/finalizers
+    - /status
+{% endif %}
   syncPolicy:
     automated:
       selfHeal: true

@@ -8,6 +8,8 @@ k8s_validate_certs: true
 username: ""
 git_repo: ""
 ai_model: "qwen25-coder-14b"
+# Editor type: "workbench" (RHOAI Kubeflow Notebook) or "devspace" (Red Hat Dev Spaces)
+editor_type: "workbench"
 
 # ---- Derived / overridable defaults ----
 workspace_namespace: "{{ username }}-ai-ws"
@@ -26,5 +28,6 @@ model_catalog:
   qwen25-coder-7b: "Qwen 2.5 Coder 7B"
   qwen3-4b: "Qwen 3 4B"
 
-# Timeout for ArgoCD sync wait (seconds)
-sync_timeout: 600
+# Timeout for ArgoCD sync wait (seconds).
+# GPU node autoscaling + model download can take 15-20 minutes on cold starts.
+sync_timeout: 1800
