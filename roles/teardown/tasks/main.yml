@@ -29,12 +29,13 @@
     wait: true
     wait_timeout: "{{ teardown_timeout }}"
 
-- name: Wait for namespace resources to be cleaned up
+- name: Wait for project resources to be cleaned up
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
-    kind: Namespace
+    api_version: project.openshift.io/v1
+    kind: Project
     name: "{{ workspace_namespace }}"
   register: ns_check
   until: >-
@@ -44,11 +45,12 @@
   delay: 10
   ignore_errors: true
 
-- name: Delete workspace namespace
+- name: Delete workspace project
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
+    api_version: project.openshift.io/v1
     kind: Project
     name: "{{ workspace_namespace }}"
     state: absent
@@ -59,5 +61,5 @@
   ansible.builtin.debug:
     msg: >-
       AI workspace for user '{{ username }}' has been
-      successfully torn down. Namespace '{{ workspace_namespace }}'
+      successfully torn down. Project '{{ workspace_namespace }}'
       and all associated resources have been removed.
