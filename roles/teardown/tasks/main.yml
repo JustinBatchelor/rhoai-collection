@@ -49,7 +49,7 @@
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
-    kind: Namespace
+    kind: Project
     name: "{{ workspace_namespace }}"
     state: absent
     wait: true
