@@ -23,6 +23,17 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: "{{ workspace_namespace }}"
+  ignoreDifferences:
+  - group: kubeflow.org
+    kind: Notebook
+    managedFieldsManagers:
+    - notebook-controller
+    - odh-notebook-controller
+    jsonPointers:
+    - /metadata/annotations/notebooks.kubeflow.org~1last-activity
+    - /metadata/annotations/notebooks.kubeflow.org~1last_activity_check_timestamp
+    - /metadata/finalizers
+    - /status
   syncPolicy:
     automated:
       selfHeal: true
@@ -38,3 +49,4 @@ spec:
     - PrunePropagationPolicy=foreground
     - PruneLast=true
     - RespectIgnoreDifferences=true
+    - ServerSideApply=true
