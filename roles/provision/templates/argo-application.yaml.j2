@@ -43,7 +43,9 @@ spec:
     managedFieldsManagers:
     - devworkspace-controller-manager
     jsonPointers:
+    - /metadata/annotations
     - /metadata/finalizers
+    - /metadata/labels/controller.devfile.io~1creator
     - /status
 {% endif %}
   syncPolicy:
