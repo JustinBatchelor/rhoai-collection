@@ -70,7 +70,19 @@
   delay: 10
   when: editor_type == "workbench"
 
-- name: Retrieve RHOAI data-science gateway route
+- name: Look up notebook Route in workspace namespace
+  kubernetes.core.k8s_info:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "codeserver-nb-{{ username }}"
+    namespace: "{{ workspace_namespace }}"
+  register: nb_route
+  when: editor_type == "workbench"
+
+- name: Retrieve RHOAI gateway route (fallback)
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
@@ -80,7 +92,9 @@
     name: "{{ rhoai_gateway_route_name }}"
     namespace: "{{ rhoai_applications_namespace }}"
   register: gateway_route
-  when: editor_type == "workbench"
+  when:
+    - editor_type == "workbench"
+    - nb_route.resources | length == 0
 
 # ---- DevWorkspace URL retrieval ----
 - name: Retrieve DevWorkspace URL
@@ -100,16 +114,48 @@
   delay: 10
   when: editor_type == "devspace"
 
-- name: Set IDE URL fact
+- name: Set IDE URL fact (workbench - notebook route)
+  ansible.builtin.set_fact:
+    ide_url: "https://{{ nb_route.resources[0].spec.host }}"
+  when:
+    - editor_type == "workbench"
+    - nb_route.resources | length > 0
+
+- name: Set IDE URL fact (workbench - gateway route)
   ansible.builtin.set_fact:
     ide_url: >-
-      {{
-        'https://' ~ gateway_route.resources[0].spec.host
-        ~ '/notebook/' ~ workspace_namespace
-        ~ '/codeserver-nb-' ~ username
-        if editor_type == 'workbench'
-        else (dw_status.resources[0].status.mainUrl | default(''))
-      }}
+      https://{{ gateway_route.resources[0].spec.host
+      }}/notebook/{{ workspace_namespace }}/codeserver-nb-{{ username }}
+  when:
+    - editor_type == "workbench"
+    - nb_route.resources | length == 0
+    - gateway_route.resources | default([]) | length > 0
+
+- name: Set IDE URL fact (workbench - manual fallback)
+  ansible.builtin.set_fact:
+    ide_url: "{{ rhoai_gateway_url }}/notebook/{{ workspace_namespace }}/codeserver-nb-{{ username }}"
+  when:
+    - editor_type == "workbench"
+    - nb_route.resources | length == 0
+    - gateway_route.resources | default([]) | length == 0
+    - rhoai_gateway_url | default('') | length > 0
+
+- name: Fail if no workbench URL could be determined
+  ansible.builtin.fail:
+    msg: >-
+      Could not determine the workbench URL. No notebook Route found in
+      '{{ workspace_namespace }}' and no gateway Route '{{ rhoai_gateway_route_name }}'
+      found in '{{ rhoai_applications_namespace }}'.
+      Set 'rhoai_gateway_url' (e.g. https://data-science-gateway.apps.<cluster>)
+      or verify 'rhoai_gateway_route_name' and 'rhoai_applications_namespace'.
+  when:
+    - editor_type == "workbench"
+    - ide_url is not defined
+
+- name: Set IDE URL fact (devspace)
+  ansible.builtin.set_fact:
+    ide_url: "{{ dw_status.resources[0].status.mainUrl }}"
+  when: editor_type == "devspace"
 
 - name: Display workspace access information
   ansible.builtin.debug:
