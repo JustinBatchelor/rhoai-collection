@@ -129,6 +129,30 @@
     merge_type: merge
   when: editor_type == "devspace"
 
+# The DevWorkspace controller has a known requeue bug where it silently
+# stalls after creating sub-resources (RBAC, routing, etc.). Each
+# annotation update triggers a watch event that advances the controller
+# one step. Five nudges with 10s pauses covers all stall points.
+- name: Nudge DevWorkspace controller through startup phases
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: workspace.devfile.io/v1alpha2
+    kind: DevWorkspace
+    name: "devspace-{{ username }}"
+    namespace: "{{ workspace_namespace }}"
+    state: present
+    definition:
+      metadata:
+        annotations:
+          ai-workspace/nudge-timestamp: "{{ now(utc=true).isoformat() }}-{{ item }}"
+    merge_type: merge
+  loop: "{{ range(1, 6) | list }}"
+  loop_control:
+    pause: 10
+  when: editor_type == "devspace"
+
 # ---- DevWorkspace URL retrieval ----
 - name: Wait for DevWorkspace to become ready
   kubernetes.core.k8s_info:
