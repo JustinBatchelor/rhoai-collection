@@ -29,21 +29,21 @@
     wait: true
     wait_timeout: "{{ teardown_timeout }}"
 
-- name: Wait for project resources to be cleaned up
-  kubernetes.core.k8s_info:
-    host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ k8s_api_key | default(omit, true) }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-    api_version: project.openshift.io/v1
-    kind: Project
-    name: "{{ workspace_namespace }}"
-  register: ns_check
-  until: >-
-    ns_check.resources | length == 0
-    or ns_check.resources[0].status.phase | default('') == 'Terminating'
-  retries: 10
-  delay: 5
-  ignore_errors: true
+# - name: Wait for project resources to be cleaned up
+#   kubernetes.core.k8s_info:
+#     host: "{{ k8s_host | default(omit, true) }}"
+#     api_key: "{{ k8s_api_key | default(omit, true) }}"
+#     validate_certs: "{{ k8s_validate_certs }}"
+#     api_version: project.openshift.io/v1
+#     kind: Project
+#     name: "{{ workspace_namespace }}"
+#   register: ns_check
+#   until: >-
+#     ns_check.resources | length == 0
+#     or ns_check.resources[0].status.phase | default('') == 'Terminating'
+#   retries: 10
+#   delay: 5
+#   ignore_errors: true
 
 - name: Delete workspace project
   kubernetes.core.k8s:
