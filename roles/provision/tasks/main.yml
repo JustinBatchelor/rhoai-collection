@@ -11,6 +11,22 @@
       username={{ username }}, git_repo={{ git_repo }}, ai_model={{ ai_model }}.
       Supported models: {{ model_catalog.keys() | list }}
 
+- name: Authenticate to OpenShift via OAuth
+  kubernetes.core.k8s_auth:
+    host: "{{ k8s_host }}"
+    username: "{{ k8s_username }}"
+    password: "{{ k8s_password }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+  register: k8s_auth
+  when: k8s_username | length > 0
+  no_log: true
+
+- name: Set authentication facts
+  ansible.builtin.set_fact:
+    _k8s_api_key: "{{ k8s_auth.k8s_auth.api_key }}"
+  when: k8s_auth is not skipped
+  no_log: true
+
 - name: Set workspace namespace
   ansible.builtin.set_fact:
     workspace_namespace: "{{ username }}-ai-ws"
@@ -26,8 +42,7 @@
 - name: Create ArgoCD Application CR
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
-    username: "{{ k8s_username | default(omit, true) }}"
-    password: "{{ k8s_password | default(omit, true) }}"
+    api_key: "{{ _k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     state: present
     definition: "{{ lookup('template', 'argo-application.yaml.j2') | from_yaml }}"
@@ -35,8 +50,7 @@
 - name: Wait for ArgoCD Application to sync and become healthy
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
-    username: "{{ k8s_username | default(omit, true) }}"
-    password: "{{ k8s_password | default(omit, true) }}"
+    api_key: "{{ _k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     api_version: argoproj.io/v1alpha1
     kind: Application
@@ -53,8 +67,7 @@
 - name: Retrieve Notebook route URL
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
-    username: "{{ k8s_username | default(omit, true) }}"
-    password: "{{ k8s_password | default(omit, true) }}"
+    api_key: "{{ _k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     api_version: route.openshift.io/v1
     kind: Route
