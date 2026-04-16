@@ -18,6 +18,10 @@
 
 - name: Delete ArgoCD Application CR (cascading delete)
   kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    username: "{{ k8s_username | default(omit, true) }}"
+    password: "{{ k8s_password | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
     api_version: argoproj.io/v1alpha1
     kind: Application
     name: "ai-ws-{{ username }}"
@@ -28,6 +32,10 @@
 
 - name: Wait for namespace resources to be cleaned up
   kubernetes.core.k8s_info:
+    host: "{{ k8s_host | default(omit, true) }}"
+    username: "{{ k8s_username | default(omit, true) }}"
+    password: "{{ k8s_password | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
     kind: Namespace
     name: "{{ workspace_namespace }}"
   register: ns_check
@@ -40,6 +48,10 @@
 
 - name: Delete workspace namespace
   kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    username: "{{ k8s_username | default(omit, true) }}"
+    password: "{{ k8s_password | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
     kind: Namespace
     name: "{{ workspace_namespace }}"
     state: absent

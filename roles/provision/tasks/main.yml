@@ -25,11 +25,19 @@
 
 - name: Create ArgoCD Application CR
   kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    username: "{{ k8s_username | default(omit, true) }}"
+    password: "{{ k8s_password | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
     state: present
     definition: "{{ lookup('template', 'argo-application.yaml.j2') | from_yaml }}"
 
 - name: Wait for ArgoCD Application to sync and become healthy
   kubernetes.core.k8s_info:
+    host: "{{ k8s_host | default(omit, true) }}"
+    username: "{{ k8s_username | default(omit, true) }}"
+    password: "{{ k8s_password | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
     api_version: argoproj.io/v1alpha1
     kind: Application
     name: "ai-ws-{{ username }}"
@@ -44,6 +52,10 @@
 
 - name: Retrieve Notebook route URL
   kubernetes.core.k8s_info:
+    host: "{{ k8s_host | default(omit, true) }}"
+    username: "{{ k8s_username | default(omit, true) }}"
+    password: "{{ k8s_password | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
     api_version: route.openshift.io/v1
     kind: Route
     namespace: "{{ workspace_namespace }}"
