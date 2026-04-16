@@ -11,12 +11,6 @@
       username={{ username }}, git_repo={{ git_repo }}, ai_model={{ ai_model }}.
       Supported models: {{ model_catalog.keys() | list }}
 
-- name: Set authentication facts
-  ansible.builtin.set_fact:
-    _k8s_api_key: "{{ k8s_auth.k8s_auth.api_key }}"
-  when: k8s_auth is not skipped
-  no_log: true
-
 - name: Set workspace namespace
   ansible.builtin.set_fact:
     workspace_namespace: "{{ username }}-ai-ws"
