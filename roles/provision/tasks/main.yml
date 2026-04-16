@@ -95,8 +95,42 @@
     - editor_type == "workbench"
     - nb_route.resources | length == 0
 
+# ---- DevSpaces namespace label (required for NetworkPolicy) ----
+- name: Label namespace for DevSpaces NetworkPolicy
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ workspace_namespace }}"
+    state: present
+    definition:
+      metadata:
+        labels:
+          app.kubernetes.io/part-of: che.eclipse.org
+    merge_type: merge
+  when: editor_type == "devspace"
+
+# ---- DevWorkspace activation (started: false -> true) ----
+- name: Start DevWorkspace after ArgoCD sync is stable
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: workspace.devfile.io/v1alpha2
+    kind: DevWorkspace
+    name: "devspace-{{ username }}"
+    namespace: "{{ workspace_namespace }}"
+    state: present
+    definition:
+      spec:
+        started: true
+    merge_type: merge
+  when: editor_type == "devspace"
+
 # ---- DevWorkspace URL retrieval ----
-- name: Retrieve DevWorkspace URL
+- name: Wait for DevWorkspace to become ready
   kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
