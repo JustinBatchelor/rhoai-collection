@@ -27,12 +27,12 @@
       using editor '{{ editor_type }}'
       and git repo '{{ git_repo }}'.
 
-- name: Create workspace namespace
+- name: Create workspace project
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
-    api_version: v1
+    api_version: project.openshift.io/v1
     kind: Project
     name: "{{ workspace_namespace }}"
     state: present
