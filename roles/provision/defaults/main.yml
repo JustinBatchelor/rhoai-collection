@@ -14,7 +14,7 @@ editor_type: "workbench"
 # ---- Derived / overridable defaults ----
 workspace_namespace: "{{ username }}-ai-ws"
 argocd_namespace: "tenant-gitops"
-argocd_project: "jbatchel-team"
+argocd_project: "team-jbatchel"
 
 # ---- RHOAI gateway (used to construct workbench URLs) ----
 # Hostname prefix for the RHOAI gateway; combined with the cluster ingress
