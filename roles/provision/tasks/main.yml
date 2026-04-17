@@ -33,7 +33,20 @@
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     api_version: project.openshift.io/v1
-    kind: Project
+    kind: ProjectRequest
+    name: "{{ workspace_namespace }}"
+  register: project_result
+  failed_when:
+    - project_result is failed
+    - "'already exists' not in (project_result.msg | default(''))"
+
+- name: Label workspace namespace for ArgoCD management
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: v1
+    kind: Namespace
     name: "{{ workspace_namespace }}"
     state: present
     definition:
