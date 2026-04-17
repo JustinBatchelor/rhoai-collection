@@ -22,6 +22,10 @@ spec:
           name: "{{ ai_model }}"
         editor:
           type: "{{ editor_type }}"
+        modelServing:
+          enabled: {{ enable_model_serving | lower }}
+        editorDeployment:
+          enabled: {{ enable_editor | lower }}
   destination:
     server: https://kubernetes.default.svc
     namespace: "{{ workspace_namespace }}"

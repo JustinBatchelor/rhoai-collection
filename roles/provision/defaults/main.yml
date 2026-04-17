@@ -33,6 +33,10 @@ model_catalog:
   qwen25-coder-7b: "Qwen 2.5 Coder 7B"
   qwen3-4b: "Qwen 3 4B"
 
+# Feature toggles for incremental deployment
+enable_model_serving: true
+enable_editor: true
+
 # Timeout for ArgoCD sync wait (seconds).
 # GPU node autoscaling + model download can take 15-20 minutes on cold starts.
 sync_timeout: 1800
