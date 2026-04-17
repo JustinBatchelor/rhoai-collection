@@ -13,8 +13,8 @@ editor_type: "workbench"
 
 # ---- Derived / overridable defaults ----
 workspace_namespace: "{{ username }}-ai-ws"
-argocd_namespace: "openshift-gitops"
-argocd_project: "ai-workspaces"
+argocd_namespace: "tenant-gitops"
+argocd_project: "team-jbatchel"
 
 # ---- RHOAI gateway (used to construct workbench URLs) ----
 # Hostname prefix for the RHOAI gateway; combined with the cluster ingress
@@ -22,7 +22,7 @@ argocd_project: "ai-workspaces"
 rhoai_gateway_route_name: "data-science-gateway"
 
 # Git reference for the Helm chart source
-chart_repo_url: "https://github.com/JustinBatchelor/ai-workspace"
+chart_repo_url: "https://github.com/JustinBatchelor/ai-workspace.git"
 chart_repo_path: "./"
 chart_target_revision: "main"
 
