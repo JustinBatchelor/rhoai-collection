@@ -27,6 +27,21 @@
       using editor '{{ editor_type }}'
       and git repo '{{ git_repo }}'.
 
+- name: Create workspace namespace
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ workspace_namespace }}"
+    state: present
+    definition:
+      metadata:
+        labels:
+          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
+          app.kubernetes.io/part-of: "{{ 'che.eclipse.org' if editor_type == 'devspace' else 'ai-workspace' }}"
+
 - name: Create ArgoCD Application CR
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
@@ -94,23 +109,6 @@
   when:
     - editor_type == "workbench"
     - nb_route.resources | length == 0
-
-# ---- DevSpaces namespace label (required for NetworkPolicy) ----
-- name: Label namespace for DevSpaces NetworkPolicy
-  kubernetes.core.k8s:
-    host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ k8s_api_key | default(omit, true) }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-    api_version: v1
-    kind: Namespace
-    name: "{{ workspace_namespace }}"
-    state: present
-    definition:
-      metadata:
-        labels:
-          app.kubernetes.io/part-of: che.eclipse.org
-    merge_type: merge
-  when: editor_type == "devspace"
 
 # ---- DevWorkspace activation (started: false -> true) ----
 - name: Start DevWorkspace after ArgoCD sync is stable
