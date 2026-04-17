@@ -33,12 +33,13 @@
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
     api_version: v1
-    kind: Namespace
+    kind: Project
     name: "{{ workspace_namespace }}"
     state: present
     definition:
       metadata:
         labels:
+          tenant: team-jbatchel
           argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
           app.kubernetes.io/part-of: "{{ 'che.eclipse.org' if editor_type == 'devspace' else 'ai-workspace' }}"
 
