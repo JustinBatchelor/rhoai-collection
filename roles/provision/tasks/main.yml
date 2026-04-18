@@ -55,6 +55,21 @@
           argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
           app.kubernetes.io/part-of: "{{ 'che.eclipse.org' if editor_type == 'devspace' else 'ai-workspace' }}"
 
+- name: Label Dev Spaces namespace for ArgoCD management
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ devspaces_namespace }}"
+    state: present
+    definition:
+      metadata:
+        labels:
+          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
+  when: editor_type == "devspace"
+
 - name: Create ArgoCD Application CR
   kubernetes.core.k8s:
     host: "{{ k8s_host | default(omit, true) }}"
@@ -132,7 +147,7 @@
     api_version: workspace.devfile.io/v1alpha2
     kind: DevWorkspace
     name: "devspace-{{ username }}"
-    namespace: "{{ workspace_namespace }}"
+    namespace: "{{ devspaces_namespace }}"
   register: dw_status
   until:
     - dw_status.resources | length > 0

@@ -13,6 +13,7 @@ editor_type: "workbench"
 
 # ---- Derived / overridable defaults ----
 workspace_namespace: "{{ username }}-ai-ws"
+devspaces_namespace: "{{ username }}-devspaces"
 argocd_namespace: "tenant-gitops"
 argocd_project: "team-jbatchel"
 
