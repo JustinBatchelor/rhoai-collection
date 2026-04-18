@@ -7,7 +7,7 @@ k8s_validate_certs: true
 # ---- Survey variables (expected from AAP Job Template) ----
 username: ""
 git_repo: ""
-ai_model: "qwen25-coder-14b"
+ai_model: "qwen3-coder-30b-a3b"
 # Editor type: "workbench" (RHOAI Kubeflow Notebook) or "devspace" (Red Hat Dev Spaces)
 editor_type: "workbench"
 
@@ -30,6 +30,7 @@ chart_target_revision: "main"
 # Model catalog maps model key -> display name (for logging only;
 # the Helm values.yaml carries the full catalog)
 model_catalog:
+  qwen3-coder-30b-a3b: "Qwen 3 Coder 30B-A3B (AWQ)"
   qwen25-coder-14b: "Qwen 2.5 Coder 14B (AWQ)"
   qwen25-coder-7b: "Qwen 2.5 Coder 7B"
   qwen3-4b: "Qwen 3 4B"
