@@ -26,34 +26,68 @@
       with model '{{ model_catalog[ai_model] }}' ({{ ai_model }})
       using editor '{{ editor_type }}'
       and git repo '{{ git_repo }}'.
+      ArgoCD project: '{{ argocd_project }}'.
 
-- name: Create workspace project
-  kubernetes.core.k8s:
-    host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ k8s_api_key | default(omit, true) }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-    api_version: project.openshift.io/v1
-    kind: ProjectRequest
-    name: "{{ workspace_namespace }}"
-  register: project_result
-  failed_when:
-    - project_result is failed
-    - "'already exists' not in (project_result.msg | default(''))"
+# ---- GitOps: template and push Application CR ----
 
-- name: Label workspace namespace for ArgoCD management
-  kubernetes.core.k8s:
-    host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ k8s_api_key | default(omit, true) }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-    api_version: v1
-    kind: Namespace
-    name: "{{ workspace_namespace }}"
-    state: present
-    definition:
-      metadata:
-        labels:
-          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
-          app.kubernetes.io/part-of: "{{ 'che.eclipse.org' if editor_type == 'devspace' else 'ai-workspace' }}"
+- name: Create temporary directory for git operations
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: "ai-ws-gitops-"
+  register: gitops_tmpdir
+
+- name: Clone rhoai-gitops-tenant repo
+  ansible.builtin.git:
+    repo: "{{ tenant_gitops_repo_url }}"
+    dest: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+    version: "{{ tenant_gitops_repo_branch }}"
+    depth: 1
+    force: true
+
+- name: Ensure team directory exists
+  ansible.builtin.file:
+    path: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant/{{ argocd_project }}"
+    state: directory
+    mode: "0755"
+
+- name: Template ArgoCD Application CR
+  ansible.builtin.template:
+    src: argo-application.yaml.j2
+    dest: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant/{{ argocd_project }}/ai-ws-{{ username }}.yaml"
+    mode: "0644"
+
+- name: Stage Application CR
+  ansible.builtin.command:
+    cmd: git add "{{ argocd_project }}/ai-ws-{{ username }}.yaml"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+
+- name: Check for changes to commit
+  ansible.builtin.command:
+    cmd: git diff --cached --quiet
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  register: git_diff_result
+  failed_when: false
+  changed_when: git_diff_result.rc == 1
+
+- name: Commit Application CR
+  ansible.builtin.command:
+    cmd: >-
+      git commit -m "provision: ai-ws-{{ username }} ({{ editor_type }})"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  when: git_diff_result.rc == 1
+
+- name: Push to rhoai-gitops-tenant
+  ansible.builtin.command:
+    cmd: git push origin "{{ tenant_gitops_repo_branch }}"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  when: git_diff_result.rc == 1
+
+- name: Clean up temporary directory
+  ansible.builtin.file:
+    path: "{{ gitops_tmpdir.path }}"
+    state: absent
+
+# ---- Label Dev Spaces namespace for ArgoCD management ----
 
 - name: Label Dev Spaces namespace for ArgoCD management
   kubernetes.core.k8s:
@@ -70,13 +104,7 @@
           argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
   when: editor_type == "devspace"
 
-- name: Create ArgoCD Application CR
-  kubernetes.core.k8s:
-    host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ k8s_api_key | default(omit, true) }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-    state: present
-    definition: "{{ lookup('template', 'argo-application.yaml.j2') | from_yaml }}"
+# ---- Wait for ArgoCD sync ----
 
 - name: Wait for ArgoCD Application to sync and become healthy
   kubernetes.core.k8s_info:

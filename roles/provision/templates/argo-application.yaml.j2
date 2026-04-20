@@ -12,7 +12,7 @@ spec:
   project: "{{ argocd_project }}"
   source:
     repoURL: "{{ chart_repo_url }}"
-    path: "{{ chart_repo_path }}"
+    path: "{{ editor_type }}"
     targetRevision: "{{ chart_target_revision }}"
     helm:
       values: |
@@ -20,13 +20,11 @@ spec:
         gitRepo: "{{ git_repo }}"
         aiModel:
           name: "{{ ai_model }}"
-        editor:
-          type: "{{ editor_type }}"
+{% if editor_type == "devspace" %}
         devspacesNamespace: "{{ devspaces_namespace }}"
+{% endif %}
         modelServing:
           enabled: {{ enable_model_serving | lower }}
-        editorDeployment:
-          enabled: {{ enable_editor | lower }}
   destination:
     server: https://kubernetes.default.svc
     namespace: "{{ workspace_namespace }}"

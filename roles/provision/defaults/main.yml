@@ -8,24 +8,24 @@ k8s_validate_certs: true
 username: ""
 git_repo: ""
 ai_model: "qwen3-coder-30b-a3b"
-# Editor type: "workbench" (RHOAI Kubeflow Notebook) or "devspace" (Red Hat Dev Spaces)
 editor_type: "workbench"
 
 # ---- Derived / overridable defaults ----
+argocd_project: "team-{{ username }}"
 workspace_namespace: "{{ username }}-ai-ws"
 devspaces_namespace: "{{ username }}-devspaces"
 argocd_namespace: "tenant-gitops"
-argocd_project: "team-jbatchel"
 
 # ---- RHOAI gateway (used to construct workbench URLs) ----
-# Hostname prefix for the RHOAI gateway; combined with the cluster ingress
-# domain (from ingresses.config.openshift.io/cluster) to build the full URL.
 rhoai_gateway_route_name: "data-science-gateway"
 
-# Git reference for the Helm chart source
-chart_repo_url: "https://github.com/JustinBatchelor/ai-workspace.git"
-chart_repo_path: "./"
+# ---- Helm charts repo (referenced in Application CR source.repoURL) ----
+chart_repo_url: "https://github.com/JustinBatchelor/rhoai-helm-charts.git"
 chart_target_revision: "main"
+
+# ---- GitOps tenant repo (Ansible clones and pushes Application CRs here) ----
+tenant_gitops_repo_url: "git@github.com:JustinBatchelor/rhoai-gitops-tenant.git"
+tenant_gitops_repo_branch: "main"
 
 # Model catalog maps model key -> display name (for logging only;
 # the Helm values.yaml carries the full catalog)

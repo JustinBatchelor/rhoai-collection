@@ -8,8 +8,14 @@ k8s_validate_certs: true
 username: ""
 
 # ---- Derived / overridable defaults ----
+argocd_project: "team-{{ username }}"
 workspace_namespace: "{{ username }}-ai-ws"
+devspaces_namespace: "{{ username }}-devspaces"
 argocd_namespace: "tenant-gitops"
+
+# ---- GitOps tenant repo (Ansible clones and pushes Application CRs here) ----
+tenant_gitops_repo_url: "git@github.com:JustinBatchelor/rhoai-gitops-tenant.git"
+tenant_gitops_repo_branch: "main"
 
 # Timeout for ArgoCD Application deletion (seconds)
 teardown_timeout: 300

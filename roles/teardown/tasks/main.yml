@@ -14,11 +14,58 @@
   ansible.builtin.debug:
     msg: >-
       Tearing down AI workspace for user '{{ username }}'
-      (namespace: {{ workspace_namespace }},
-       ArgoCD app: ai-ws-{{ username }}).
+      (ArgoCD app: ai-ws-{{ username }},
+       team: {{ argocd_project }}).
 
-- name: Delete ArgoCD Application CR (cascading delete)
-  kubernetes.core.k8s:
+# ---- GitOps: remove Application CR from git ----
+
+- name: Create temporary directory for git operations
+  ansible.builtin.tempfile:
+    state: directory
+    prefix: "ai-ws-teardown-"
+  register: gitops_tmpdir
+
+- name: Clone rhoai-gitops-tenant repo
+  ansible.builtin.git:
+    repo: "{{ tenant_gitops_repo_url }}"
+    dest: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+    version: "{{ tenant_gitops_repo_branch }}"
+    depth: 1
+    force: true
+
+- name: Check if Application CR file exists
+  ansible.builtin.stat:
+    path: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant/{{ argocd_project }}/ai-ws-{{ username }}.yaml"
+  register: app_cr_file
+
+- name: Remove Application CR from git
+  ansible.builtin.command:
+    cmd: git rm "{{ argocd_project }}/ai-ws-{{ username }}.yaml"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  when: app_cr_file.stat.exists
+
+- name: Commit removal
+  ansible.builtin.command:
+    cmd: >-
+      git commit -m "teardown: ai-ws-{{ username }}"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  when: app_cr_file.stat.exists
+
+- name: Push to rhoai-gitops-tenant
+  ansible.builtin.command:
+    cmd: git push origin "{{ tenant_gitops_repo_branch }}"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  when: app_cr_file.stat.exists
+
+- name: Clean up temporary directory
+  ansible.builtin.file:
+    path: "{{ gitops_tmpdir.path }}"
+    state: absent
+
+# ---- Wait for ArgoCD cascading deletion ----
+
+- name: Wait for ArgoCD Application to be deleted
+  kubernetes.core.k8s_info:
     host: "{{ k8s_host | default(omit, true) }}"
     api_key: "{{ k8s_api_key | default(omit, true) }}"
     validate_certs: "{{ k8s_validate_certs }}"
@@ -26,25 +73,12 @@
     kind: Application
     name: "ai-ws-{{ username }}"
     namespace: "{{ argocd_namespace }}"
-    state: absent
-    wait: true
-    wait_timeout: "{{ teardown_timeout }}"
+  register: app_check
+  until: app_check.resources | length == 0
+  retries: "{{ (teardown_timeout | int / 10) | int }}"
+  delay: 10
 
-# - name: Wait for project resources to be cleaned up
-#   kubernetes.core.k8s_info:
-#     host: "{{ k8s_host | default(omit, true) }}"
-#     api_key: "{{ k8s_api_key | default(omit, true) }}"
-#     validate_certs: "{{ k8s_validate_certs }}"
-#     api_version: project.openshift.io/v1
-#     kind: Project
-#     name: "{{ workspace_namespace }}"
-#   register: ns_check
-#   until: >-
-#     ns_check.resources | length == 0
-#     or ns_check.resources[0].status.phase | default('') == 'Terminating'
-#   retries: 10
-#   delay: 5
-#   ignore_errors: true
+# ---- Clean up Dev Spaces namespace label ----
 
 - name: Remove ArgoCD management label from Dev Spaces namespace
   kubernetes.core.k8s:
@@ -61,21 +95,9 @@
           argocd.argoproj.io/managed-by: null
   ignore_errors: true
 
-- name: Delete workspace project
-  kubernetes.core.k8s:
-    host: "{{ k8s_host | default(omit, true) }}"
-    api_key: "{{ k8s_api_key | default(omit, true) }}"
-    validate_certs: "{{ k8s_validate_certs }}"
-    api_version: project.openshift.io/v1
-    kind: Project
-    name: "{{ workspace_namespace }}"
-    state: absent
-    wait: true
-    wait_timeout: 120
-
 - name: Confirm teardown complete
   ansible.builtin.debug:
     msg: >-
       AI workspace for user '{{ username }}' has been
-      successfully torn down. Project '{{ workspace_namespace }}'
-      and all associated resources have been removed.
+      successfully torn down. ArgoCD Application 'ai-ws-{{ username }}'
+      and all associated resources have been removed via cascading deletion.
