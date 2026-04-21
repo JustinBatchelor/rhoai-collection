@@ -28,6 +28,53 @@
       and git repo '{{ git_repo }}'.
       ArgoCD project: '{{ argocd_project }}'.
 
+# ---- Bootstrap namespace with ArgoCD managed-by label ----
+# The tenant ArgoCD instance requires the managed-by label on a namespace
+# before it will deploy resources into it. The Namespace resource in the
+# Helm chart also declares this label, so ArgoCD will adopt it on first sync.
+
+- name: Create workspace project
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: project.openshift.io/v1
+    kind: ProjectRequest
+    name: "{{ workspace_namespace }}"
+  register: project_result
+  failed_when:
+    - project_result is failed
+    - "'already exists' not in (project_result.msg | default(''))"
+
+- name: Label workspace namespace for ArgoCD management
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ workspace_namespace }}"
+    state: present
+    definition:
+      metadata:
+        labels:
+          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
+
+- name: Label Dev Spaces namespace for ArgoCD management
+  kubernetes.core.k8s:
+    host: "{{ k8s_host | default(omit, true) }}"
+    api_key: "{{ k8s_api_key | default(omit, true) }}"
+    validate_certs: "{{ k8s_validate_certs }}"
+    api_version: v1
+    kind: Namespace
+    name: "{{ devspaces_namespace }}"
+    state: present
+    definition:
+      metadata:
+        labels:
+          argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
+  when: editor_type == "devspace"
+
 # ---- GitOps: template and push Application CR ----
 
 - name: Build authenticated repo URL
@@ -102,23 +149,6 @@
   ansible.builtin.file:
     path: "{{ gitops_tmpdir.path }}"
     state: absent
-
-# # ---- Label Dev Spaces namespace for ArgoCD management ----
-
-# - name: Label Dev Spaces namespace for ArgoCD management
-#   kubernetes.core.k8s:
-#     host: "{{ k8s_host | default(omit, true) }}"
-#     api_key: "{{ k8s_api_key | default(omit, true) }}"
-#     validate_certs: "{{ k8s_validate_certs }}"
-#     api_version: v1
-#     kind: Namespace
-#     name: "{{ devspaces_namespace }}"
-#     state: present
-#     definition:
-#       metadata:
-#         labels:
-#           argocd.argoproj.io/managed-by: "{{ argocd_namespace }}"
-#   when: editor_type == "devspace"
 
 # ---- Wait for ArgoCD sync ----
 
