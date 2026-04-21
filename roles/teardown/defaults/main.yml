@@ -14,8 +14,11 @@ devspaces_namespace: "{{ username }}-devspaces"
 argocd_namespace: "tenant-gitops"
 
 # ---- GitOps tenant repo (Ansible clones and pushes Application CRs here) ----
-tenant_gitops_repo_url: "git@github.com:JustinBatchelor/rhoai-gitops-tenant.git"
+tenant_gitops_repo_url: "https://github.com/JustinBatchelor/rhoai-gitops-tenant.git"
 tenant_gitops_repo_branch: "main"
+
+# GitHub token for git push (injected via AAP credential, never stored here)
+git_token: ""
 
 # Timeout for ArgoCD Application deletion (seconds)
 teardown_timeout: 300

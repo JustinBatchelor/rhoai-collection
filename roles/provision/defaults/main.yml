@@ -24,8 +24,11 @@ chart_repo_url: "https://github.com/JustinBatchelor/rhoai-helm-charts.git"
 chart_target_revision: "main"
 
 # ---- GitOps tenant repo (Ansible clones and pushes Application CRs here) ----
-tenant_gitops_repo_url: "git@github.com:JustinBatchelor/rhoai-gitops-tenant.git"
+tenant_gitops_repo_url: "https://github.com/JustinBatchelor/rhoai-gitops-tenant.git"
 tenant_gitops_repo_branch: "main"
+
+# GitHub token for git push (injected via AAP credential, never stored here)
+git_token: ""
 
 # Model catalog maps model key -> display name (for logging only;
 # the Helm values.yaml carries the full catalog)

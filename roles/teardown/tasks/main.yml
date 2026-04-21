@@ -19,6 +19,12 @@
 
 # ---- GitOps: remove Application CR from git ----
 
+- name: Build authenticated repo URL
+  ansible.builtin.set_fact:
+    _tenant_repo_auth_url: >-
+      {{ tenant_gitops_repo_url | regex_replace('https://', 'https://' + git_token + '@') }}
+  no_log: true
+
 - name: Create temporary directory for git operations
   ansible.builtin.tempfile:
     state: directory
@@ -27,11 +33,20 @@
 
 - name: Clone rhoai-gitops-tenant repo
   ansible.builtin.git:
-    repo: "{{ tenant_gitops_repo_url }}"
+    repo: "{{ _tenant_repo_auth_url }}"
     dest: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
     version: "{{ tenant_gitops_repo_branch }}"
     depth: 1
     force: true
+  no_log: true
+
+- name: Configure git user for commit
+  ansible.builtin.command:
+    cmd: "{{ item }}"
+    chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
+  loop:
+    - git config user.email "aap-automation@redhat.com"
+    - git config user.name "AAP Automation"
 
 - name: Check if Application CR file exists
   ansible.builtin.stat:
@@ -56,6 +71,7 @@
     cmd: git push origin "{{ tenant_gitops_repo_branch }}"
     chdir: "{{ gitops_tmpdir.path }}/rhoai-gitops-tenant"
   when: app_cr_file.stat.exists
+  no_log: true
 
 - name: Clean up temporary directory
   ansible.builtin.file:
